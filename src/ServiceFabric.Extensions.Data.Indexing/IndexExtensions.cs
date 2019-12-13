@@ -200,7 +200,7 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent
 			var result = await stateManager.TryGetAsync<IReliableDictionary2<TKey, TValue>>(name).ConfigureAwait(false);
 			if (result.HasValue)
 			{
-				await stateManager.RemoveIndexedAsync(tx, result.Value.Name, timeout, indexes).ConfigureAwait(false);
+				await stateManager.RemoveIndexedAsync(tx, GetBaseIndexUri(name), timeout, indexes).ConfigureAwait(false);
 			}
 		}
 
