@@ -290,7 +290,7 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent
 			if (!result.HasValue)
 				return new ConditionalValue<IReliableIndexedDictionary<TKey, TValue>>();
 
-			return await stateManager.TryGetIndexedAsync(result.Value, indexes).ConfigureAwait(false);
+			return await stateManager.TryGetIndexedAsync(result.Value, GetBaseIndexUri(name), indexes).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -308,7 +308,7 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent
 			if (!result.HasValue)
 				return new ConditionalValue<IReliableIndexedDictionary<TKey, TValue>>();
 
-			return await stateManager.TryGetIndexedAsync(result.Value, indexes).ConfigureAwait(false);
+			return await stateManager.TryGetIndexedAsync(result.Value, GetBaseIndexUri(name), indexes).ConfigureAwait(false);
 		}
 
 		private static async Task<IReliableIndexedDictionary<TKey, TValue>> GetOrAddIndexedAsync<TKey, TValue>(this IReliableStateManager stateManager, ITransaction tx, TimeSpan timeout, IReliableDictionary2<TKey, TValue> dictionary, Uri baseName, params IIndexDefinition<TKey, TValue>[] indexes)
@@ -323,11 +323,10 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent
 			return new ReliableIndexedDictionary<TKey, TValue>(dictionary, indexes);
 		}
 
-		private static async Task<ConditionalValue<IReliableIndexedDictionary<TKey, TValue>>> TryGetIndexedAsync<TKey, TValue>(this IReliableStateManager stateManager, IReliableDictionary2<TKey, TValue> dictionary, params IIndexDefinition<TKey, TValue>[] indexes)
+		private static async Task<ConditionalValue<IReliableIndexedDictionary<TKey, TValue>>> TryGetIndexedAsync<TKey, TValue>(this IReliableStateManager stateManager, IReliableDictionary2<TKey, TValue> dictionary, Uri baseName, params IIndexDefinition<TKey, TValue>[] indexes)
 			where TKey : IComparable<TKey>, IEquatable<TKey>
 		{
 			// Get or create each index.
-			Uri baseName = GetBaseIndexUri(dictionary.Name);
 			foreach (var index in indexes)
 			{
 				if (!await index.TryGetIndexAsync(stateManager, baseName).ConfigureAwait(false))
