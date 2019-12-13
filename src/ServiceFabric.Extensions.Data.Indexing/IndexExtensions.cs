@@ -200,6 +200,7 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent
 			var result = await stateManager.TryGetAsync<IReliableDictionary2<TKey, TValue>>(name).ConfigureAwait(false);
 			if (result.HasValue)
 			{
+				await stateManager.RemoveAsync(tx, name, timeout).ConfigureAwait(false);
 				await stateManager.RemoveIndexedAsync(tx, GetBaseIndexUri(name), timeout, indexes).ConfigureAwait(false);
 			}
 		}
@@ -265,7 +266,11 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent
 		public static async Task RemoveIndexedAsync<TKey, TValue>(this IReliableStateManager stateManager, ITransaction tx, Uri name, TimeSpan timeout, params IIndexDefinition<TKey, TValue>[] indexes)
 			where TKey : IComparable<TKey>, IEquatable<TKey>
 		{
-			await stateManager.RemoveAsync(tx, name, timeout).ConfigureAwait(false);
+			var state = await stateManager.TryGetAsync<IReliableDictionary2<TKey, TValue>>(name).ConfigureAwait(false);
+			if (state.HasValue)
+			{
+				await stateManager.RemoveAsync(tx, name, timeout).ConfigureAwait(false);
+			}
 
 			// Remove all the indexes.
 			Uri baseName = GetBaseIndexUri(name);

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.ServiceFabric.Data.Mocks;
 using Microsoft.ServiceFabric.Data;
+using ServiceFabric.Extensions.Data.Indexing.Persistent.Test.Models;
 
 namespace ServiceFabric.Extensions.Data.Indexing.Persistent.Test
 {
@@ -22,6 +23,20 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent.Test
 		}
 
 		[TestMethod]
+		public async Task TryGetIndexed_NoIndexes_StateAdded()
+		{
+			var stateManager = new MockReliableStateManager();
+
+			await stateManager.GetOrAddIndexedAsync<int, string>("test");
+
+			var result = await stateManager.TryGetIndexedAsync<int, string>("test");
+
+			Assert.IsTrue(result.HasValue);
+			Assert.IsNotNull(result.Value);
+			Assert.AreEqual(1, await GetReliableStateCountAsync(stateManager));
+		}
+
+		[TestMethod]
 		public async Task TryGetIndexed_OneIndex()
 		{
 			var stateManager = new MockReliableStateManager();
@@ -31,6 +46,40 @@ namespace ServiceFabric.Extensions.Data.Indexing.Persistent.Test
 			Assert.IsFalse(result.HasValue);
 			Assert.IsNull(result.Value);
 			Assert.AreEqual(0, await GetReliableStateCountAsync(stateManager));
+		}
+
+		[TestMethod]
+		public async Task TryGetIndexed_OneIndex_StateAdded()
+		{
+			var stateManager = new MockReliableStateManager();
+
+			await stateManager.GetOrAddIndexedAsync<Guid, Person>("someTest",
+				new FilterableIndex<Guid, Person, string>("someIndex", (k, v) => v.Name));
+
+			var result = await stateManager.TryGetIndexedAsync<Guid, Person>("someTest",
+				new FilterableIndex<Guid, Person, string>("someIndex", (k, v) => v.Name));
+
+			Assert.IsTrue(result.HasValue);
+			Assert.IsNotNull(result.Value);
+			Assert.AreEqual(2, await GetReliableStateCountAsync(stateManager));
+		}
+
+		[TestMethod]
+		public async Task TryGetIndexed_TwoIndexes_StateAdded()
+		{
+			var stateManager = new MockReliableStateManager();
+
+			await stateManager.GetOrAddIndexedAsync<Guid, Person>("sometest",
+				new FilterableIndex<Guid, Person, string>("someindex", (k, v) => v.Name),
+				new FilterableIndex<Guid, Person, (int age, string city)>("someotherindex", (k, v) => (v.Age, v.Address.City)));
+
+			var result = await stateManager.TryGetIndexedAsync<Guid, Person>("sometest",
+				new FilterableIndex<Guid, Person, string>("someindex", (k, v) => v.Name),
+				new FilterableIndex<Guid, Person, (int age, string city)>("someotherindex", (k, v) => (v.Age, v.Address.City)));
+
+			Assert.IsTrue(result.HasValue);
+			Assert.IsNotNull(result.Value);
+			Assert.AreEqual(3, await GetReliableStateCountAsync(stateManager));
 		}
 
 		[TestMethod]
